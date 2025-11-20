@@ -97,7 +97,7 @@ osThreadId_t ResetGlobalHandle;
 const osThreadAttr_t ResetGlobal_attributes = {
   .name = "ResetGlobal",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityIdle,
 };
 /* Definitions for DebounceTask */
 osThreadId_t DebounceTaskHandle;
@@ -105,6 +105,27 @@ const osThreadAttr_t DebounceTask_attributes = {
   .name = "DebounceTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for SemaphoreToggle */
+osThreadId_t SemaphoreToggleHandle;
+const osThreadAttr_t SemaphoreToggle_attributes = {
+  .name = "SemaphoreToggle",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for SemaphoreTogle3 */
+osThreadId_t SemaphoreTogle3Handle;
+const osThreadAttr_t SemaphoreTogle3_attributes = {
+  .name = "SemaphoreTogle3",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+/* Definitions for Reset_Mutex */
+osThreadId_t Reset_MutexHandle;
+const osThreadAttr_t Reset_Mutex_attributes = {
+  .name = "Reset_Mutex",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for SW_Timer_7Seg */
 osTimerId_t SW_Timer_7SegHandle;
@@ -165,6 +186,9 @@ void Mutex_CountDownTask(void *argument);
 void UpdateGlobDisplayProcess(void *argument);
 void ResetGlobalTask(void *argument);
 void StartDebounce(void *argument);
+void Semaphore_Toggle_Task(void *argument);
+void Semaphore_Toggle_Task3(void *argument);
+void Reset_MutexCount(void *argument);
 void SW_Timer_Countdown(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -280,6 +304,15 @@ int main(void)
 
   /* creation of DebounceTask */
   DebounceTaskHandle = osThreadNew(StartDebounce, NULL, &DebounceTask_attributes);
+
+  /* creation of SemaphoreToggle */
+  SemaphoreToggleHandle = osThreadNew(Semaphore_Toggle_Task, NULL, &SemaphoreToggle_attributes);
+
+  /* creation of SemaphoreTogle3 */
+  SemaphoreTogle3Handle = osThreadNew(Semaphore_Toggle_Task3, NULL, &SemaphoreTogle3_attributes);
+
+  /* creation of Reset_Mutex */
+  Reset_MutexHandle = osThreadNew(Reset_MutexCount, NULL, &Reset_Mutex_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -429,8 +462,8 @@ static void MX_USART2_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -513,8 +546,8 @@ static void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -637,7 +670,7 @@ void SW_Timer_Task(void *argument)
 	if (osTimerIsRunning(SW_Timer_7SegHandle))
 		osTimerStop(SW_Timer_7SegHandle );
 	else
-		osTimerStart(SW_Timer_7SegHandle , 200);
+		osTimerStart(SW_Timer_7SegHandle , 1200);
     osDelay(1);
   }
   /* USER CODE END SW_Timer_Task */
@@ -772,11 +805,78 @@ void StartDebounce(void *argument)
 		 * */
 		 xTaskNotifyWait( 0xfffffff8, 0x7, &buttons_in, portMAX_DELAY);
 	     osDelay(30);
-	     if (buttons_in & B1) { osSemaphoreRelease(Button_1_SemaphoreHandle); }
-	     if (buttons_in & B2) { osSemaphoreRelease(Button_2_SemaphoreHandle); }
-	     if (buttons_in & B3) { osSemaphoreRelease(Button_3_SemaphoreHandle); }
+	     if (buttons_in & B1) { osSemaphoreRelease(Button_1_SemaphoreHandle);}
+	     if (buttons_in & B2) { osSemaphoreRelease(Button_2_SemaphoreHandle);}
+	     if (buttons_in & B3) { osSemaphoreRelease(Button_3_SemaphoreHandle);}
+	     HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 	 }
   /* USER CODE END StartDebounce */
+}
+
+/* USER CODE BEGIN Header_Semaphore_Toggle_Task */
+/**
+* @brief Function implementing the SemaphoreToggle thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Semaphore_Toggle_Task */
+void Semaphore_Toggle_Task(void *argument)
+{
+  /* USER CODE BEGIN Semaphore_Toggle_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+	  osSemaphoreAcquire(Button_1_SemaphoreHandle, osWaitForever);
+	  HAL_GPIO_TogglePin(LED_D4_GPIO_Port, LED_D4_Pin);
+	  osDelay(1);
+
+
+  }
+  /* USER CODE END Semaphore_Toggle_Task */
+}
+
+/* USER CODE BEGIN Header_Semaphore_Toggle_Task3 */
+/**
+* @brief Function implementing the SemaphoreTogle3 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Semaphore_Toggle_Task3 */
+void Semaphore_Toggle_Task3(void *argument)
+{
+  /* USER CODE BEGIN Semaphore_Toggle_Task3 */
+  /* Infinite loop */
+  for(;;)
+  {
+	  osSemaphoreAcquire(Button_1_SemaphoreHandle, osWaitForever);
+	  	  HAL_GPIO_TogglePin(LED_D3_GPIO_Port, LED_D3_Pin);
+	  	  osDelay(1);
+  }
+  /* USER CODE END Semaphore_Toggle_Task3 */
+}
+
+/* USER CODE BEGIN Header_Reset_MutexCount */
+/**
+* @brief Function implementing the Reset_Mutex thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Reset_MutexCount */
+void Reset_MutexCount(void *argument)
+{
+  /* USER CODE BEGIN Reset_MutexCount */
+  /* Infinite loop */
+  for(;;)
+  {
+	osSemaphoreAcquire(Button_3_SemaphoreHandle, osWaitForever);
+	osMutexWait(UpDownMutexHandle,osWaitForever);
+	        MultiFunctionShield_Display_Two_Digits(-1);
+	        osDelay(200);
+	        osMutexRelease(UpDownMutexHandle);
+	        osDelay(2);
+  }
+  /* USER CODE END Reset_MutexCount */
 }
 
 /* SW_Timer_Countdown function */
@@ -811,7 +911,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM3) {
+  if (htim->Instance == TIM3)
+  {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
@@ -837,8 +938,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
